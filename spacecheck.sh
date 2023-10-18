@@ -1,4 +1,18 @@
-#!/bin/bash
+i#!/bin/bash
+
+funcion validateN(){
+}
+
+funcion validateD(){
+}
+
+funcion validateS(){
+}
+
+funcion validateL(){
+}
+
+
 
 function main(){
     echo "${@: -1}" #ultimo argumento (pode dar jeito)

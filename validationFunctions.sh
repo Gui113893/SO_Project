@@ -4,12 +4,16 @@ function validateN() {
     #Expressão Regular com o Tipo de Ficheiros
     if [[ ! $1 =~ ^.*\.(jpg|JPG|gif|GIF|doc|DOC|pdf|PDF|sh|"*sh"|a|au|bin|bz2|c|) ]]; then
         echo "[Invalid Argument] - Must be a regular expression for a type of file"
-        exit 0
+        exit 1
     fi
 }
 
 function validateD(){
-    return 0
+    date_pattern="^[A-Z][a-z]{2} [0-9]{1,2} [0-9]{2}:[0-9]{2}"
+    if [[ ! $1 =~ $date_pattern ]]; then
+            echo "-d Argument $1 is invalid."
+            exit 1
+    fi
 }
 
 function validateS(){

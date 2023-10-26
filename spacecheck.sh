@@ -1,21 +1,9 @@
 #!/bin/bash
-
-funcion validateN(){
-}
-
-funcion validateD(){
-}
-
-funcion validateS(){
-}
-
-funcion validateL(){
-}
-
-
+source ./validationFunctions.sh
 
 function main(){
-    echo "${@: -1}" #ultimo argumento (pode dar jeito)
+    #Default Options
+    #echo "${@: -1}" #ultimo argumento (pode dar jeito)
 
     #Gestão das flags {-n [arg] | -d [arg] | -s [arg] | -r | -a | -l [arg] }
     while getopts 'n:d:s:ral:' OPTION; do
@@ -23,12 +11,14 @@ function main(){
             n)
                 #-n filtra o tipo de ficheiros a serem contabilizados
                 #Caso não seja usada a flag, todos os ficheiros são contabilizados
+                nOPtion=true
                 echo "-n TRUE"
                 ;;
             d)
                 #-d filtra a data máxima de modificação dos ficheiros
-                cat "$OPTARG"
                 echo "-d TRUE"
+                
+                echo 
                 ;;
             s)
                 #-s filtra o tamanho mínimo dos ficheiros
@@ -48,6 +38,10 @@ function main(){
                 #-l é usado para limitar o número de linhas que aparece no output da tabela
                 echo "-l TRUE"
                 ;;
+            *)
+                echo "$OPTARG Not An Option"
+                exit 0
+                ;;
         esac
     done
 
@@ -55,6 +49,16 @@ function main(){
     #1 - O script mesmo que não receba flags necessita de argumento(s) que pode ser uma ou mais diretorias
     #2 - Se, por alguma razão, não for possível aceder a uma diretoria, o espaço ocupado pelos ficheiros 
     #da mesma deve ser assinalado com NA
+
+
+    #find . -regex ".*sh"
+    #du -cb -d (depth) (Directory)
+
+    #command="cat $1"
+    #command+=" $2"
+    #$command
+
+    value=""
 
 }
 

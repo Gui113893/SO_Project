@@ -1,10 +1,10 @@
 #!/bin/bash
 
-function validateN() {
-    #Expressão Regular com o Tipo de Ficheiros
-    if [[ ! $1 =~ ^.*\.(jpg|JPG|gif|GIF|doc|DOC|pdf|PDF|sh|"*sh"|a|au|bin|bz2|c|) ]]; then
-        echo "[Invalid Argument] - Must be a regular expression for a type of file"
-        exit 1
+function validateN(){
+    regex_pattern="^.*\..*$"
+    if [[ ! $1 =~ $regex_pattern ]]; then
+            echo "-n Argument $1 is invalid."
+            exit 1
     fi
 }
 

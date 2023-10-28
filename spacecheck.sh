@@ -1,22 +1,47 @@
 #!/bin/bash
 source ./validationFunctions.sh
 
+function spacecheck() {
+    local dir=$1
+    local regex=$2
+    
+    local totals=()
+
+    for d in $(find "$dir" -type d); do
+        if [[ -n $regex ]]; then
+            local total=$(find "$d" -type f -regex "$regex" -exec du -cb {} + | awk '{total += $1} END {print total}')
+        else
+            local total=$(find "$d" -type f -exec du -cb {} + | awk '{total += $1} END {print total}')
+        fi
+        if [[ $total -gt 0 ]]; then
+            totals+=("$total $d")
+        fi
+    done
+
+    for total in "${totals[@]}"; do
+        echo "$total"
+    done 
+
+}
+
 function main(){
     #Default Options
 
-    #command="du "
-    args=() #array para armazenar os argumentos que não estão relacionados com as flags
+    local args=() #array para armazenar os argumentos que não estão relacionados com as flags
+    local nRegex="" #variável para armazenar o argumento da flag -n
 
+    
     #Gestão das flags {-n [arg] | -d [arg] | -s [arg] | -r | -a | -l [arg] }
     while getopts 'n:d:s:ral:' OPTION; do
         case "$OPTION" in 
             n)
                 #-n filtra o tipo de ficheiros a serem contabilizados
                 #Caso não seja usada a flag, todos os ficheiros são contabilizados
+                validateN "$OPTARG"
+                nRegex="$OPTARG"
                 ;;
             d)
                 #-d filtra a data máxima de modificação dos ficheiros
-                echo $OPTARG
                 ;;
             s)
                 #-s filtra o tamanho mínimo dos ficheiros
@@ -24,7 +49,6 @@ function main(){
             r)
                 #-r para ordenar de forma inversa (Menor -> Maior)
                 #Se a flag não for usada, a ordenação mantém-se a "normal" (Maior -> Menor)
-                command+="| sort -n -r"
                 ;;
             a)
                 #-a para ordernar por nome
@@ -63,7 +87,16 @@ function main(){
     #Feito o shift, agora a variável $@ terá todos os argumentos do script menos os das flags
     args+=("$@")
 
-    echo ${args[@]}
+    #if [[ -n $nRegex ]]; then
+     #   du -cb $(find "${args[@]}" -type f -regex "$nRegex") | sort -nr
+    #else
+     #   du -cb "${args[@]}" | sort -nr
+    #fi
+
+    for arg in "${args[@]}"; do
+        spacecheck "$arg" "$nRegex"
+    done | sort -rn
+
 
     #eval $command
 

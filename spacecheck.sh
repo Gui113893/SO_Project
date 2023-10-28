@@ -3,9 +3,9 @@ source ./validationFunctions.sh
 
 function main(){
     #Default Options
-    #echo "${@: -1}" #ultimo argumento (pode dar jeito)
 
-    command="du "
+    #command="du "
+    args=() #array para armazenar os argumentos que não estão relacionados com as flags
 
     #Gestão das flags {-n [arg] | -d [arg] | -s [arg] | -r | -a | -l [arg] }
     while getopts 'n:d:s:ral:' OPTION; do
@@ -13,32 +13,25 @@ function main(){
             n)
                 #-n filtra o tipo de ficheiros a serem contabilizados
                 #Caso não seja usada a flag, todos os ficheiros são contabilizados
-                nOption=true
-                echo "-n TRUE"
                 ;;
             d)
                 #-d filtra a data máxima de modificação dos ficheiros
-                echo "-d TRUE"
                 echo $OPTARG
                 ;;
             s)
                 #-s filtra o tamanho mínimo dos ficheiros
-                echo "-s TRUE"
                 ;;
             r)
                 #-r para ordenar de forma inversa (Menor -> Maior)
                 #Se a flag não for usada, a ordenação mantém-se a "normal" (Maior -> Menor)
-                echo "-r TRUE"
-                command+="| sort -n"
+                command+="| sort -n -r"
                 ;;
             a)
                 #-a para ordernar por nome
-                #Se a flag não for usada, a ordenação mantém-se a default como no caso do -r (Maior -> Menor)
-                echo "-a TRUE"
+                #Se a flag não for usada, a ordenação mantém-se a default como no caso do -r (Maior -> Menor)             
                 ;;
             l)
                 #-l é usado para limitar o número de linhas que aparece no output da tabela
-                echo "-l TRUE"
                 ;;
             *)
                 echo "$OPTARG Not An Option"
@@ -57,10 +50,23 @@ function main(){
     #find /path/ -name ".*sh"
     #du -cb -d (depth) (Directory)
 
-    #command="cat $1"
-    #command+=" $2"
-    #$command
-    eval $command
+
+    #Cabeçalho:
+    echo SIZE NAME $(date +%Y%m%d) "$@"
+    
+    #O shift desloca os argumentos do terminal de posição
+    #A variável OPTIND é o índice do próximo argumento a ser processado pela função 'getopts'
+    #Ou seja, OPTIND -1 é o índice do último argumento processado associado a uma flag
+    #shift $((OPTIND-1)) remove os argumentos processados ficando só os do /spacecheck.sh
+    shift $((OPTIND-1)) 
+
+    #Feito o shift, agora a variável $@ terá todos os argumentos do script menos os das flags
+    args+=("$@")
+
+    echo ${args[@]}
+
+    #eval $command
+
 
 }
 

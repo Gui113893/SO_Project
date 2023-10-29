@@ -29,7 +29,8 @@ function main(){
 
     local args=() #array para armazenar os argumentos que não estão relacionados com as flags
     local nRegex="" #variável para armazenar o argumento da flag -n
-
+    local aFlag=0
+    local rFlag=0
     
     #Gestão das flags {-n [arg] | -d [arg] | -s [arg] | -r | -a | -l [arg] }
     while getopts 'n:d:s:ral:' OPTION; do
@@ -47,10 +48,14 @@ function main(){
                 #-s filtra o tamanho mínimo dos ficheiros
                 ;;
             r)
+		aFLag=0
+		rFlag=1
                 #-r para ordenar de forma inversa (Menor -> Maior)
                 #Se a flag não for usada, a ordenação mantém-se a "normal" (Maior -> Menor)
                 ;;
             a)
+		rFlag=0
+		aFlag=1
                 #-a para ordernar por nome
                 #Se a flag não for usada, a ordenação mantém-se a default como no caso do -r (Maior -> Menor)             
                 ;;
@@ -95,7 +100,17 @@ function main(){
 
     for arg in "${args[@]}"; do
         spacecheck "$arg" "$nRegex"
-    done | sort -rn
+    done | 
+	if [ $rFlag -eq 1 ]; then 
+		sort -n
+	elif [ $aFlag -eq 1 ]; then
+		#Sort alfabético com base no nome dos diretórios
+		# -t' ' declara o separador entre o SIZE e o NAME, que é blankspace
+		# 1 e 2 são as keys de SIZE e NAME, respetivamente. -k2 aplica o sort apenas pela ordem alfabética de NAME.
+		sort -t' ' -k2
+	else
+		sort -rn
+	fi		
 
 
     #eval $command

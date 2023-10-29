@@ -1,22 +1,30 @@
 #!/bin/bash
 source ./validationFunctions.sh
 
-function spacecheck() {
-    local dir=$1
+function calcSpace() {
+    local dir="$1"
     local regex=$2
-    
     local totals=()
 
-    for d in $(find "$dir" -type d); do
-        if [[ -n $regex ]]; then
-            local total=$(find "$d" -type f -regex "$regex" -exec du -cb {} + | awk '{total += $1} END {print total}')
+    if [[ ! -d $dir || ! -x $dir ]]; then
+        echo "NA $dir"
+        return
+    fi
+
+    while IFS= read -r -d $'\0' d; do
+        if [[ ! -d $d || ! -x $d ]]; then
+            totals+=("NA $d")
         else
-            local total=$(find "$d" -type f -exec du -cb {} + | awk '{total += $1} END {print total}')
+            #Simplificação dos ifs, como só mudava a parte -regex $regex, agora a variavel $regex recebe o comando em vez do regex sozinho
+            #Com a variável a receber -regex "regex", em vez dos ifs é só por a variável no comando. Se estiver vazia, faz como se não tivesse sido usada a flag -n
+            local total=$(find "$d" -type f $regex -print0 -exec du -cb {} + 2>/dev/null| awk '{total += $1} END {print total}')
+            
+            if [[ $total -gt 0 ]]; then
+                totals+=("$total $d")
+            fi
         fi
-        if [[ $total -gt 0 ]]; then
-            totals+=("$total $d")
-        fi
-    done
+    done < <(find "$dir" -type d -print0 2>/dev/null) #2>/dev/null é adicionado para que os erros do du como "Permission denied" não sejam mostrados
+
 
     for total in "${totals[@]}"; do
         echo "$total"
@@ -25,13 +33,19 @@ function spacecheck() {
 }
 
 function main(){
-    #Default Options
+    #Caso não seja passadp nenhum argumento, o script é terminado
+    if [[ $# -eq 0 ]]; then
+        echo "No arguments were given"
+        exit 1
+    fi
 
-    local args=() #array para armazenar os argumentos que não estão relacionados com as flags
+    #Default Options
+    local dirs=() #array para armazenar os diretórios que não estão relacionados com as flags
     local nRegex="" #variável para armazenar o argumento da flag -n
-    local aFlag=0
-    local rFlag=0
+    local sort="sort -rn" #variável de sort default
+    local limit="" #variável de limite default; "" significa que não há limite
     
+
     #Gestão das flags {-n [arg] | -d [arg] | -s [arg] | -r | -a | -l [arg] }
     while getopts 'n:d:s:ral:' OPTION; do
         case "$OPTION" in 
@@ -39,7 +53,7 @@ function main(){
                 #-n filtra o tipo de ficheiros a serem contabilizados
                 #Caso não seja usada a flag, todos os ficheiros são contabilizados
                 validateN "$OPTARG"
-                nRegex="$OPTARG"
+                nRegex="-regex $OPTARG"
                 ;;
             d)
                 #-d filtra a data máxima de modificação dos ficheiros
@@ -48,19 +62,18 @@ function main(){
                 #-s filtra o tamanho mínimo dos ficheiros
                 ;;
             r)
-		aFLag=0
-		rFlag=1
                 #-r para ordenar de forma inversa (Menor -> Maior)
                 #Se a flag não for usada, a ordenação mantém-se a "normal" (Maior -> Menor)
+                sort="sort -n" 
                 ;;
             a)
-		rFlag=0
-		aFlag=1
                 #-a para ordernar por nome
-                #Se a flag não for usada, a ordenação mantém-se a default como no caso do -r (Maior -> Menor)             
+                #Se a flag não for usada, a ordenação mantém-se a default como no caso do -r (Maior -> Menor)  
+                sort="sort -t' ' -k2"           
                 ;;
             l)
                 #-l é usado para limitar o número de linhas que aparece no output da tabela
+                limit="| head -$OPTARG"
                 ;;
             *)
                 echo "$OPTARG Not An Option"
@@ -68,17 +81,6 @@ function main(){
                 ;;
         esac
     done
-
-    #Detalhe do script:
-    #1 - O script mesmo que não receba flags necessita de argumento(s) que pode ser uma ou mais diretorias
-    #2 - Se, por alguma razão, não for possível aceder a uma diretoria, o espaço ocupado pelos ficheiros 
-    #da mesma deve ser assinalado com NA
-
-
-    #find . -regex ".*sh"
-    #find /path/ -name ".*sh"
-    #du -cb -d (depth) (Directory)
-
 
     #Cabeçalho:
     echo SIZE NAME $(date +%Y%m%d) "$@"
@@ -90,31 +92,11 @@ function main(){
     shift $((OPTIND-1)) 
 
     #Feito o shift, agora a variável $@ terá todos os argumentos do script menos os das flags
-    args+=("$@")
+    dirs+=("$@")
 
-    #if [[ -n $nRegex ]]; then
-     #   du -cb $(find "${args[@]}" -type f -regex "$nRegex") | sort -nr
-    #else
-     #   du -cb "${args[@]}" | sort -nr
-    #fi
-
-    for arg in "${args[@]}"; do
-        spacecheck "$arg" "$nRegex"
-    done | 
-	if [ $rFlag -eq 1 ]; then 
-		sort -n
-	elif [ $aFlag -eq 1 ]; then
-		#Sort alfabético com base no nome dos diretórios
-		# -t' ' declara o separador entre o SIZE e o NAME, que é blankspace
-		# 1 e 2 são as keys de SIZE e NAME, respetivamente. -k2 aplica o sort apenas pela ordem alfabética de NAME.
-		sort -t' ' -k2
-	else
-		sort -rn
-	fi		
-
-
-    #eval $command
-
+    for dir in "${dirs[@]}"; do
+        calcSpace "$dir" "$nRegex"
+    done | eval $sort $limit
 
 }
 

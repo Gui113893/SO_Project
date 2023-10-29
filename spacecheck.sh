@@ -3,7 +3,8 @@ source ./validationFunctions.sh
 
 function calcSpace() {
     local dir="$1"
-    local regex=$2
+    local regexCommand=$2
+    local sizeCommand=$3
     local totals=()
 
     if [[ ! -d $dir || ! -x $dir ]]; then
@@ -17,7 +18,7 @@ function calcSpace() {
         else
             #Simplificação dos ifs, como só mudava a parte -regex $regex, agora a variavel $regex recebe o comando em vez do regex sozinho
             #Com a variável a receber -regex "regex", em vez dos ifs é só por a variável no comando. Se estiver vazia, faz como se não tivesse sido usada a flag -n
-            local total=$(find "$d" -type f $regex -print0 -exec du -cb {} + 2>/dev/null| awk '{total += $1} END {print total}')
+            local total=$(find "$d" -type f $sizeCommand $regexCommand -print0 -exec du -cb {} + 2>/dev/null| awk '{total += $1} END {print total}')
             
             if [[ $total -gt 0 ]]; then
                 totals+=("$total $d")
@@ -43,7 +44,8 @@ function main(){
     local dirs=() #array para armazenar os diretórios que não estão relacionados com as flags
     local nRegex="" #variável para armazenar o argumento da flag -n
     local sort="sort -rn" #variável de sort default
-    local limit="" #variável de limite default; "" significa que não há limite
+    local limit="" #variável de limite de output default; "" significa que não há limite de output
+    local size="" #variável de size default; "" significa que não há limite de size
     
 
     #Gestão das flags {-n [arg] | -d [arg] | -s [arg] | -r | -a | -l [arg] }
@@ -60,6 +62,8 @@ function main(){
                 ;;
             s)
                 #-s filtra o tamanho mínimo dos ficheiros
+                size="-size +$OPTARG"
+                size+="c"       #comando final= -size +$OPTARGc
                 ;;
             r)
                 #-r para ordenar de forma inversa (Menor -> Maior)
@@ -95,7 +99,7 @@ function main(){
     dirs+=("$@")
 
     for dir in "${dirs[@]}"; do
-        calcSpace "$dir" "$nRegex"
+        calcSpace "$dir" "$nRegex" "$size"
     done | eval $sort $limit
 
 }

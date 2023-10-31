@@ -6,7 +6,6 @@ function calcSpace() {
     local regexCommand=$2
     local sizeCommand=$3
     local dateCommand=$4
-    local totals=()
  
     if [[ ! -d $dir || ! -x $dir ]]; then
         echo "NA $dir"
@@ -15,22 +14,16 @@ function calcSpace() {
 
     while IFS= read -r -d $'\0' d; do
         if [[ ! -d $d || ! -x $d ]]; then
-            totals+=("NA $d")
+            echo NA "$d"
         else
             #Simplificação dos ifs, como só mudava a parte -regex $regex, agora a variavel $regex recebe o comando em vez do regex sozinho
             #Com a variável a receber -regex "regex", em vez dos ifs é só por a variável no comando. Se estiver vazia, faz como se não tivesse sido usada a flag -n
-            local total=$(find "$d" -type f $sizeCommand $regexCommand $dateCommand -print0 -exec du -cb {} + 2>/dev/null| awk '{total = $1} END {print total}')
+            #"-maxdepth 1" limita o "scope" de procura do comando find, para apenas contabilizar os ficheiros filhos diretos diretorio em questão.            
+            local total=$(find "$d" -maxdepth 1 -type f $sizeCommand $regexCommand $dateCommand -print0 -exec du -cb {} + 2>/dev/null| awk '{total = $1} END {print total+0}')
             
-            if [[ $total -gt 0 ]]; then
-                totals+=("$total $d")
-            fi
+            echo "$total" "$d"
         fi
     done < <(find "$dir" -type d -print0 2>/dev/null) #2>/dev/null é adicionado para que os erros do du como "Permission denied" não sejam mostrados
-
-
-    for total in "${totals[@]}"; do
-        echo "$total"
-    done 
 
 }
 
@@ -65,6 +58,7 @@ function main(){
                 ;;
             s)
                 #-s filtra o tamanho mínimo dos ficheiros
+                validateS "$OPTARG"
                 size="-size +$OPTARG"
                 size+="c"       #comando final= -size +$OPTARGc
                 ;;
@@ -80,6 +74,7 @@ function main(){
                 ;;
             l)
                 #-l é usado para limitar o número de linhas que aparece no output da tabela
+                validateL "$OPTARG"
                 limit="| head -$OPTARG"
                 ;;
             *)

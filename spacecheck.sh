@@ -2,12 +2,12 @@
 source ./validationFunctions.sh
 
 function calcSpace() {
-    local dir="$1"
+    local dir=$1
     local regexCommand=$2
     local sizeCommand=$3
     local dateCommand=$4
     local totals=()
-
+ 
     if [[ ! -d $dir || ! -x $dir ]]; then
         echo "NA $dir"
         return
@@ -19,7 +19,7 @@ function calcSpace() {
         else
             #Simplificação dos ifs, como só mudava a parte -regex $regex, agora a variavel $regex recebe o comando em vez do regex sozinho
             #Com a variável a receber -regex "regex", em vez dos ifs é só por a variável no comando. Se estiver vazia, faz como se não tivesse sido usada a flag -n
-            local total=$(find "$d" -type f $sizeCommand $regexCommand $dateCommand -print0 -exec du -cb {} + 2>/dev/null| awk '{total += $1} END {print total}')
+            local total=$(find "$d" -type f $sizeCommand $regexCommand $dateCommand -print0 -exec du -cb {} + 2>/dev/null| awk '{total = $1} END {print total}')
             
             if [[ $total -gt 0 ]]; then
                 totals+=("$total $d")
@@ -60,6 +60,7 @@ function main(){
                 ;;
             d)
                 #-d filtra a data máxima de modificação dos ficheiros
+                validateD "$OPTARG"
                 date="-newermt "1970-01-01T00:00:00" ! -newermt "$(date -d "$OPTARG" +"%Y-%m-%dT%H:%M:%S")""
                 ;;
             s)

@@ -8,7 +8,7 @@ function validateN(){
 }
 
 function validateD(){
-    if ! date -d "$1" ; then
+    if [[ ! $(date -d "$1") ]]; then
             echo "-d Argument $1 is invalid."
             exit 1
     fi

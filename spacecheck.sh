@@ -19,7 +19,7 @@ function calcSpace() {
             #Simplificação dos ifs, como só mudava a parte -regex $regex, agora a variavel $regex recebe o comando em vez do regex sozinho
             #Com a variável a receber -regex "regex", em vez dos ifs é só por a variável no comando. Se estiver vazia, faz como se não tivesse sido usada a flag -n
             #"-maxdepth 1" limita o "scope" de procura do comando find, para apenas contabilizar os ficheiros filhos diretos diretorio em questão.            
-            local total=$(find "$d" -maxdepth 1 -type f $sizeCommand $regexCommand $dateCommand -print0 -exec du -cb {} + 2>/dev/null| awk '{total = $1} END {print total+0}')
+            local total=$(find "$d" -type f $sizeCommand $regexCommand $dateCommand -print0 -exec du -cb {} + 2>/dev/null| awk '{total = $1} END {print total+0}')
             
             echo "$total" "$d"
         fi
@@ -27,7 +27,7 @@ function calcSpace() {
 
 }
 
-function main(){
+function main() {
     #Caso não seja passadp nenhum argumento, o script é terminado
     if [[ $# -eq 0 ]]; then
         echo "No arguments were given"

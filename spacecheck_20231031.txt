@@ -1,0 +1,3 @@
+SIZE NAME 20231031 -n .*sh .
+4857 .
+NA ./Batata

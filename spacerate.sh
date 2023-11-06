@@ -1,83 +1,100 @@
 #!/bin/bash
-
-function calcSpace2() {
-    local dir=$1
-    local regexCommand=$2
-    local sizeCommand=$3
-    local dateCommand=$4
- 
-    if [[ ! -d $dir || ! -x $dir ]]; then
-        echo "NA $dir"
-        return
-    fi
-
-        while IFS= read -r -d $'\0' d; do
-        if [[ ! -d $d || ! -x $d ]]; then
-            echo NA "$d"
-        else
-            #Simplificação dos ifs, como só mudava a parte -regex $regex, agora a variavel $regex recebe o comando em vez do regex sozinho
-            #Com a variável a receber -regex "regex", em vez dos ifs é só por a variável no comando. Se estiver vazia, faz como se não tivesse sido usada a flag -n
-            #"-maxdepth 1" limita o "scope" de procura do comando find, para apenas contabilizar os ficheiros filhos diretos diretorio em questão.            
-            local total=$(find "$d" -type -maxdepth 1 f $sizeCommand $regexCommand $dateCommand -print0 -exec du -cb {} + 2>/dev/null| awk '{total = $1} END {print total+0}')
-            
-            echo "$total" "$d"
-        fi
-    done < <(find "$file" -type d -print0 2>/dev/null) #2>/dev/null é adicionado para que os erros do du como "Permission denied" não sejam mostrados
-
-    return 0;
-}
+source ./validationFunctions.sh
 
 function AnalyzeFile() {
-    local dirs=()
-    local file=$1
-    local dateFile=""
+    local file_A=$1
+    local file_B=$2
+    local infoA=() #array para armazenar as informações do ficheiro A
+    local infoB=() #array para armazenar as informações do ficheiro B
+    local found=false
+    local directory_A=""
+    local directory_B=""
+    local size_A=0
+    local size_B=0
+    local diff=0
+    local count=0
 
-    local regexCommand="" 
-    local sort="sort -rn"
-    local limit="" 
-    local sizeCommand=""
-    local dateCommand="-newermt "1970-01-01T00:00:00" ! -newermt "$(date +"%Y-%m-%dT%H:%M:%S")""
- 
-    if [[ ! -f $file || ! -r $file ]]; then
-        echo "Argument must be a readable file"
-        return
+
+    if [[ ! -f $file_A || ! -r $file_A || ! -f $file_B || ! -r $file_B ]]; then
+        echo "Arguments must be readable files"
+        return 1;
     fi
 
-    first_line=$(head -n 1 "$file")
-    # Guarda "SIZE NAME (file creation date)" + todos os argumentos do spacecheck num array 
-    read -ra args <<< "$first_line"
-    dateFile=$(echo "$first_line" | awk '{print $3}')
-    # Variável index vai estar sempre 1 posição à frente de "arg", útil para guardar os argumento das flags
-    local index=1
+    #Ler o ficheiro 1 e guardar as informações no array infoA
     
-    for arg in "${args[@]}"; do
-        case $arg in
-            -n)
-                regexCommand="-regex ${args[$index]}"                
-                ;;
-            -s)
-                sizeCommand="-size +${args[$index]}"
-                sizeCommand+="c" 
-                ;;
-            -d)
-                # No cabeçalho do ficheiro, a data está no formato: mês ano dia (ou em ordens diferentes)
-                dateCommand="-newermt "1970-01-01T00:00:00" ! -newermt $(date -d "${args[$index]} ${args[$index+1]} ${args[$index+2]}" +"%Y-%m-%dT%H:%M:%S")"
-                ;;
-            -l)
-                limit="| head -${args[$index]}"
-                ;;
-            *)
-                if [[ -d $arg ]]; then
-                    dirs+=("$arg")
+    while IFS= read -r line; do
+        #Passa a primeira linha do ficheiro
+        if [[ $count -eq 0 ]]; then
+            count=$((count+1))
+            continue
+        else
+            infoA+=("$line")
+        fi
+    done <"$file_A"
+
+    #Ler o ficheiro 2 e guardar as informações no array infoB
+    count=0
+    while IFS= read -r line; do
+        #Passa a primeira linha do ficheiro
+        if [[ $count -eq 0 ]]; then
+            count=$((count+1))
+            continue
+        else
+            infoB+=("$line")
+        fi
+    done <"$file_B"
+
+    #Loop para comparar os arrays
+    #Por cada elemento do array A, procura o elemento correspondente no array B passando por todos os elementos 
+    #do array B até encontrar match
+    for i in "${!infoA[@]}"; do
+        directory_A=$(echo "${infoA[$i]}" | awk '{print $2}')
+        size_A=$(echo "${infoA[$i]}" | awk '{print $1}')
+        
+        for j in "${!infoB[@]}"; do
+            directory_B=$(echo "${infoB[$j]}" | awk '{print $2}')
+            size_B=$(echo "${infoB[$j]}" | awk '{print $1}')
+
+            #Se encontrar match, calcula a diferença e remove os elementos dos arrays
+            if [[ $directory_A == $directory_B ]]; then
+
+                #Atenção quando o tamanho é NA
+                if [[ $size_A == "NA" && $size_B == "NA" ]]; then
+                    diff="NA"
+                else
+                    diff=$((size_A - size_B))
                 fi
-                ;;
-        esac
-        # Forçada a adição em vez da concatenação
-        index=$((index+1))
+                echo "$diff $directory_A"
+                unset 'infoA[i]'
+                unset 'infoB[j]'
+                break
+            fi
+        done
     done
 
-    for dir in "${dirs[@]}"; do
-        calcSpace2 "$dir" "$regexCommand" "$sizeCommand" "$dateCommand"
+    #No final do loops, os arrays só têm elementos que não têm match
+    #Os elementos do array A são considerados como novos e os elementos do array B são considerados como removidos
+    #Partindo do princípio que os files são passados por ordem cronológica, os elementos do array A são mais recentes que os do array B
+    for i in "${!infoA[@]}"; do
+        directory_A=$(echo "${infoA[$i]}" | awk '{print $2}')
+        size_A=$(echo "${infoA[$i]}" | awk '{print $1}')
+        if [[ $size_A == "NA" ]]; then
+            diff="NA"  
+        else
+            diff=$((size_A - 0))
+        fi
+        echo "$diff $directory_A NEW"
+    done
+
+    for i in "${!infoB[@]}"; do
+        directory_B=$(echo "${infoB[$i]}" | awk '{print $2}')
+        size_B=$(echo "${infoB[$i]}" | awk '{print $1}')
+        if [[ $size_B == "NA" ]]; then
+            diff="NA"  
+        else
+            diff=$((0 - size_B))
+        fi
+        echo "$diff $directory_B REMOVED"
     done
 
     return 0;
@@ -92,14 +109,19 @@ function main(){
     fi
 
     local sort="sort -rn" #variável de sort default
+    local limit="" #variável de limite de output default; "" significa que não há limite de output
 
-    while getopts 'ra' OPTION; do
+    while getopts 'ral:' OPTION; do
         case "$OPTION" in 
             r)
                 sort="sort -n" 
                 ;;
             a)
                 sort="sort -t' ' -k2"           
+                ;;
+            l)
+                validateL "$OPTARG"
+                limit="| head -$OPTARG"
                 ;;
             *)
                 echo "$OPTARG Not An Option"
@@ -115,7 +137,7 @@ function main(){
     shift $((OPTIND-1))
 
     if [[ ! $# -eq 2 ]]; then
-        echo "Exactly 2 directories must be given"
+        echo "Exactly 2 files must be given"
         exit 1
     fi
 

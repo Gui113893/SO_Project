@@ -26,7 +26,6 @@ function AnalyzeFile() {
         #Passa a primeira linha do ficheiro
         if [[ $count -eq 0 ]]; then
             count=$((count+1))
-            continue
         else
             infoA+=("$line")
         fi
@@ -38,7 +37,6 @@ function AnalyzeFile() {
         #Passa a primeira linha do ficheiro
         if [[ $count -eq 0 ]]; then
             count=$((count+1))
-            continue
         else
             infoB+=("$line")
         fi
@@ -57,7 +55,7 @@ function AnalyzeFile() {
 
             #Se encontrar match, calcula a diferença e remove os elementos dos arrays
             if [[ $directory_A == $directory_B ]]; then
-
+                
                 #Atenção quando o tamanho é NA
                 if [[ $size_A == "NA" && $size_B == "NA" ]]; then
                     diff="NA"
@@ -130,17 +128,15 @@ function main(){
         esac
     done
 
+    shift $((OPTIND-1))
+
+    if [[ $# -ne 2 ]]; then
+        echo "Wrong number of arguments"
+        return 1;
+    fi
 
     #Cabeçalho:
     echo SIZE NAME "$@"
-
-    shift $((OPTIND-1))
-
-    if [[ ! $# -eq 2 ]]; then
-        echo "Exactly 2 files must be given"
-        exit 1
-    fi
-
     AnalyzeFile "$@" | eval $sort $limit
 
 }

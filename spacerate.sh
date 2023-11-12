@@ -4,13 +4,14 @@ source ./validationFunctions.sh
 function UsageSpaceRate () {
 	echo "Usage: spacerate.sh [-a|-r options] file1 file2"
     echo "file1 must be the most recent file"
+    echo "Both files must be refering to the same directory(ies)"
 	echo "Options:"
 	echo -e "\t-a 		- alphabetic sort (muttualy exclusive with -r)"
 	echo -e "\t-h              - Script usage"
 	echo -e "\t-l number 	- maximum output lines"
 }
 
-function AnalyzeFile() {
+function AnalyzeFiles() {
     local file_A=$1         # file A
     local file_B=$2         # file B
     local infoA=()          # array to store the information from file A
@@ -166,7 +167,7 @@ function main(){
 
     # Header:
     echo SIZE NAME "$@"
-    AnalyzeFile "$@" | eval $sort $limit 
+    AnalyzeFiles "$@" | eval $sort $limit 
     # AnalyzeFile function is called and the output is piped to the sort command and the limit command (if used)
 
 }

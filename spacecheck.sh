@@ -1,5 +1,4 @@
 #!/bin/bash
-source ./validationFunctions.sh
 
 # User-oriented help function
 function Usage () {
@@ -25,12 +24,14 @@ function calcSpace() {
         return
     fi
 
-    while IFS= read -r -d $'\0' d; do       # -r to avoid backlash interpertation
-                                            # -d $'\0' to ensure that the while loop reads the directories correctly, even if they have spaces in their names
+    # -r to avoid backlash interpertation
+    # -d $'\0' to ensure that the while loop reads the directories correctly, even if they have spaces in their names
+    while IFS= read -r -d $'\0' d; do 
         if [[ ! -x $d ]]; then   # -x to check if the directory is executable
-            echo NA "$d"                    # If the directory is not executable, NA is printed
+            echo NA "$d"         # If the directory is not executable, NA is printed
         else 
             local total=$(find "$d" -type f $sizeCommand $regexCommand $dateCommand -print0 -exec du -cb {} + 2>/dev/null | awk '{total = $1} END {print total+0}')
+            
             # The assignment of the total variable is a bit complex, so to understand it, it is easier to break it down:
             # "total" corresponds to the total sum of the sizes of all files in the directory (including files inside subdirectories)
             # find "$d" -type f $sizeCommand $regexCommand $dateCommand -print0 => finds all files in the directory that match the given criteria
@@ -42,7 +43,9 @@ function calcSpace() {
             
             echo "$total" "$d"
         fi
-    done < <(find "$dir" -type d -print0 2>/dev/null) # 2>/dev/null to ensure du errors such as "Permission denied" are not shown
+    done < <(find "$dir" -type d -print0 2>/dev/null) 
+    # find "$dir" -type d -print0 => finds all directories in the given directory
+    # 2>/dev/null to ensure du errors such as "Permission denied" are not shown
 
 }
 
@@ -121,7 +124,13 @@ function main() {
     # Which means OPTIND -1 is the index of the last argument processed by getopts.
     shift $((OPTIND-1)) # Therefore, this removes the processed options and flags from the list of arguments 
 
-    dirs+=("$@")    # The remaining arguments are the directories to be considered
+    if [[ "$#" -eq 0 ]]; then		    # $# denotes the $@ array size (number of parameters given)
+        echo "No directories were given."
+	    Usage						    # No parameters passed? Call Usage function...
+	    exit						    # Script exits!
+    fi
+
+    dirs+=("$@")        # The remaining arguments are the directories to be considered
 
 
     # For each directory passed as argument, the calcSpace function is called to calculate the total size of all files in the directory

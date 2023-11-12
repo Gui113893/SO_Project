@@ -1,8 +1,9 @@
 #!/bin/bash
 function validateN(){
-    regex_pattern="^.*\..*$"
+    regex_pattern="^.*\..*$" # Regex pattern for validating file extensions
     if [[ ! $1 =~ $regex_pattern ]]; then
             echo "-n Argument $1 is invalid."
+            Usage
             exit 1
     fi
 }
@@ -10,6 +11,7 @@ function validateN(){
 function validateD(){
     if [[ ! $(date -d "$1") ]]; then
             echo "-d Argument $1 is invalid."
+            Usage
             exit 1
     fi
 }
